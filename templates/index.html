@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Monitor</title>
+    <style>
+        /* Basic styling for the body and container */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f1f1f1;
+            margin: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        /* Centered heading */
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        /* Table styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        td {
+            background-color: #fff;
+        }
+        /* Status colors based on class */
+        .up {
+            background-color: #8BC34A;
+            color: #fff;
+        }
+        .down {
+            background-color: #f44336;
+            color: #fff;
+        }
+        .issue {
+            background-color: #FFC107;
+            color: #333;
+        }
+        .error {
+            background-color: #9E9E9E;
+            color: #fff;
+        }
+        /* Form group for input and button */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group input {
+            width: 100%; /* Full width input */
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-group button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Network Monitor</h1>
+        
+        <!-- Form to add a new website -->
+        <div class="form-group">
+            <input type="text" id="addWebsiteInput" placeholder="Enter new website URL">
+            <button onclick="addWebsite()">Add Website</button>
+        </div>
+        
+        <!-- Form group for entering website URLs -->
+        <div class="form-group">
+            <input type="text" id="websiteInput" placeholder="Enter website URLs (comma-separated)">
+            <button onclick="checkWebsites()">Check Websites</button>
+        </div>
+        
+        <!-- Table to display website status -->
+        <table id="statusTable">
+            <thead>
+                <tr>
+                    <th>Website</th>
+                    <th>Status</th>
+                    <th>Ping Time</th>
+                    <th>HTTP Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dynamic content will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Function to fetch and display website statuses
+        function checkWebsites() {
+            const input = document.getElementById('websiteInput').value;
+            const websites = input.split(',').map(url => url.trim()); // Split input by commas
+
+            // Fetch data from Flask endpoint
+            fetch(`/status?website=${websites.join('&website=')}`)
+                .then(response => response.json())
+                .then(data => {
+                    const statusTable = document.getElementById('statusTable').getElementsByTagName('tbody')[0];
+                    statusTable.innerHTML = ''; // Clear existing table rows
+
+                    // Iterate through received data and create table rows
+                    data.forEach(site => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${site.url}</td>
+                            <td class="${site.status_class}">${site.status_class.toUpperCase()}</td>
+                            <td>${site.ping_time} ms</td>
+                            <td>${site.http_status}</td>
+                        `;
+                        statusTable.appendChild(row); // Append row to table body
+                    });
+                })
+                .catch(error => console.error('Error fetching status:', error));
+        }
+
+        // Function to add a new website
+        function addWebsite() {
+            const newWebsite = document.getElementById('addWebsiteInput').value.trim();
+
+            if (newWebsite) {
+                fetch('/add_website', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ website: newWebsite })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message); // Display a message about the result
+
+                    // Optionally refresh the list of websites
+                    checkWebsites();
+                })
+                .catch(error => console.error('Error adding website:', error));
+            } else {
+                alert('Please enter a website URL.');
+            }
+        }
+
+        // Optional: Auto-refresh every 10 seconds
+        setInterval(checkWebsites, 10000);
+    </script>
+</body>
+</html>
